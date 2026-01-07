@@ -31,20 +31,21 @@ jobs:
           ls -la
           ls tests || echo "No tests folder"
 
-      - name: Run pytest and generate report
+      - name: Run pytest and generate reports
         run: |
           mkdir -p reports
           pytest \
             --html=reports/pytest-report.html \
-            --self-contained-html || true
-
-      - name: Verify HTML report exists
+            --self-contained-html \
+            --junitxml=reports/report.xml || true   # <-- Added JUnit XML report
+          
+      - name: Verify reports exist
         run: |
           ls -R reports || echo "Reports folder missing"
 
-      - name: Upload HTML report
+      - name: Upload HTML and XML reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pytest-html-report
-          path: reports/
+          name: pytest-reports
+          path: reports/   # <-- collects both HTML and XML reports
