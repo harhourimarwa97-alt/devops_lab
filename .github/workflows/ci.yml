@@ -31,21 +31,41 @@ jobs:
           ls -la
           ls tests || echo "No tests folder"
 
-      - name: Run pytest and generate reports
+      - name: Run pytest and generate report
         run: |
           mkdir -p reports
           pytest \
             --html=reports/pytest-report.html \
-            --self-contained-html \
-            --junitxml=reports/report.xml || true   # <-- Added JUnit XML report
-          
-      - name: Verify reports exist
+            --self-contained-html || true
+
+      - name: Verify HTML report exists
         run: |
           ls -R reports || echo "Reports folder missing"
 
-      - name: Upload HTML and XML reports
+      - name: Upload HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pytest-reports
-          path: reports/   # <-- collects both HTML and XML reports
+          name: pytest-html-report
+          path: reports/
+
+      - name: Upload test artifacts (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: reports/
+
+  deploy:
+    needs: test
+    if: needs.test.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy application
+        run: |
+          echo "🚀 Deploying application..."
+          # your real deploy command here
