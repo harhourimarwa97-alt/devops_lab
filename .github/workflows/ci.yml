@@ -81,7 +81,7 @@ jobs:
             Deploy Status: ${{ needs.deploy.result }}
 
             Please find the attached test report.
-          to: ${{ secrets.GMAIL_USERNAME }}
+          to: ${{ secrets.GMAIL_TO}}
           cc: ${{ secrets.GMAIL_RECEIVER }}
           from: GitHub Actions <${{ secrets.GMAIL_USERNAME }}>
           attachments: ./report/report.xml
