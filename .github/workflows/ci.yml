@@ -66,9 +66,15 @@ jobs:
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.GMAIL_USERNAME }}
           password: ${{ secrets.GMAIL_PASSWORD }}
+          from: GitHub Actions <${{ secrets.GMAIL_USERNAME }}>
+          
+          to: ${{ secrets.GMAIL_TO}}
+          cc: ${{ secrets.GMAIL_RECEIVER }}
 
           subject: |
             CI Status: ${{ needs.build-and-test.result }} - ${{ github.repository }}
+            
+           
 
           body: |
             Hello 👋,
@@ -81,7 +87,5 @@ jobs:
             Deploy Status: ${{ needs.deploy.result }}
 
             Please find the attached test report.
-          to: ${{ secrets.GMAIL_TO}}
-          cc: ${{ secrets.GMAIL_RECEIVER }}
-          from: GitHub Actions <${{ secrets.GMAIL_USERNAME }}>
+          
           attachments: ./report/report.xml
