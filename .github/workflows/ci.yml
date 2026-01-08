@@ -1,13 +1,12 @@
-name: Python CI
+name: CI Build, Deploy & Email Notification
 
 on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main ]
 
 jobs:
-  test:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,51 +20,68 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-html
+          pip install pytest
 
-      - name: Debug project structure
-        run: |
-          pwd
-          ls -la
-          ls tests || echo "No tests folder"
-
-      - name: Run pytest and generate report
+      - name: Run tests and generate XML report
         run: |
           mkdir -p reports
-          pytest \
-            --html=reports/pytest-report.html \
-            --self-contained-html || true
+          pytest --junitxml=reports/report.xml
 
-      - name: Verify HTML report exists
-        run: |
-          ls -R reports || echo "Reports folder missing"
-
-      - name: Upload HTML report
-        if: always()
+      - name: Upload test report artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pytest-html-report
-          path: reports/
-
-      - name: Upload test artifacts (always)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-artifacts
-          path: reports/
+          name: test-report
+          path: reports/report.xml
 
   deploy:
-    needs: test
-    if: needs.test.result == 'success'
+    needs: build-and-test
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Deploy application
         run: |
           echo "🚀 Deploying application..."
-          # your real deploy command here
+          # real deploy command here
+
+  notify:
+    needs: [build-and-test, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Download test report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: test-report
+          path: ./report
+
+      - name: Verify downloaded report
+        run: |
+          ls -la ./report
+
+      - name: Send email notification with report
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_PASSWORD }}
+
+          subject: |
+            CI Status: ${{ needs.build-and-test.result }} - ${{ github.repository }}
+
+          body: |
+            Hello 👋,
+
+            The CI pipeline has completed.
+
+            Repository: ${{ github.repository }}
+            Commit SHA: ${{ github.sha }}
+            Build & Test Status: ${{ needs.build-and-test.result }}
+            Deploy Status: ${{ needs.deploy.result }}
+
+            Please find the attached test report.
+          to: ${{ secrets.GMAIL_USERNAME }}
+          cc: ${{ secrets.GMAIL_RECEIVER }}
+          from: GitHub Actions <${{ secrets.GMAIL_USERNAME }}>
+          attachments: ./report/report.xml
